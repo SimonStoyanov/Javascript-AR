@@ -140,6 +140,10 @@
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
                 sendMatricesToShader();
                 gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
+                mat4.translate(mvMatrix, [-3.0, 0.0, 0.0]);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
             }
 
 
