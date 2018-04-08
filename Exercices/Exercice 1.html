@@ -116,9 +116,31 @@
                 gl.uniformMatrix4fv(shaderProgram.sMatrixUniform, false, sceneMatrix);
             }
 
-            var triangleVertexPositionBuffer;
-            
             function loadSceneOnGPU() {
+                // TRIANGLE
+                triangleVertexPositionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                var triangle_vertices = [
+                    -1.0, -1.0, 0.0,
+                     1.0, -1.0, 0.0,
+                     0.0,  1.0, 0.0
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangle_vertices), gl.STATIC_DRAW);
+                triangleVertexPositionBuffer.itemSize = 3;
+                triangleVertexPositionBuffer.numItems = 3;
+
+                triangleVertexColorBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+                var triangle_colors = [
+                    1.0, 0.0, 0.0, 1.0,
+                    0.0, 1.0, 0.0, 1.0,
+                    0.0, 0.0, 1.0, 1.0,
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangle_colors), gl.STATIC_DRAW);
+                triangleVertexColorBuffer.itemSize = 4;
+                triangleVertexColorBuffer.numItems = 3;
+
+                // SQUARE
                 squareVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
                 var vertices = [
@@ -155,7 +177,7 @@
                 mat4.identity(viewMatrix);
                 mat4.translate(viewMatrix, [0.0, 0.0, -10.0]);
 
-                // Place object into scene
+                // Place left square into scene
                 mat4.identity(sceneMatrix);
                 mat4.translate(sceneMatrix, [-5.0, 0.0, 0.0]);
                 mat4.rotate(sceneMatrix, degToRad(45), [0, 0, 1]);
@@ -164,11 +186,26 @@
                 sendMatricesToShader();
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
 
-                // Place object into scene
+                // Place right square into scene
                 mat4.identity(sceneMatrix);             
                 mat4.translate(sceneMatrix, [4.0, 0.0, 0.0]);
                 sendMatricesToShader();
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+
+                // Place upper triangle into scene
+                mat4.identity(sceneMatrix);             
+                mat4.translate(sceneMatrix, [-0.5, 1.5, 0.0]);
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, triangleVertexPositionBuffer.numItems);
+
+                // Place lower triangle into scene
+                mat4.identity(sceneMatrix);             
+                mat4.translate(sceneMatrix, [-0.5, -1.5, 0.0]);
+                mat4.rotate(sceneMatrix, degToRad(180), [0, 0, 1]);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, triangleVertexPositionBuffer.numItems);
             }
 
 
