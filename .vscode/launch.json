@@ -9,7 +9,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Lanzar Chrome contra localhost",
-            "url": "file:///C:/Users/simonsb/Documents/GitHub/Javascript-AR/WebGLApp/webGLApp.html",
+            "url": "file:///D:/Javascript-AR/Exercices/Exercice 1.html",
             "webRoot": "${workspaceFolder}"
         }
     ]
