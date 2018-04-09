@@ -10,7 +10,7 @@
         "request": "launch",
         "reAttach": true,
         "name": "Launch index.html",
-        "file": "${workspaceFolder}/Exercices/Exercice 1.html"
+        "file": "${workspaceFolder}/Exercices/Exercice 2.html"
     }
     ]
 }
