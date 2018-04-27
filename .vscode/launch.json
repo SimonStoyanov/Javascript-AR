@@ -10,7 +10,7 @@
         "request": "launch",
         "reAttach": true,
         "name": "Launch index.html",
-        "file": "${workspaceFolder}/Exercices/Exercice 4 - Drawing Geometry.html"
+        "file": "${workspaceFolder}/Exercices/Exercice 5 - Lighting Gouraud.html"
     }
     ]
 }
