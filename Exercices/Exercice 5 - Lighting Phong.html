@@ -8,11 +8,9 @@
 
         <script id="shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
-            //attribute vec4 aVertexColor;
             attribute vec2 aVertexTexCoords;
             attribute vec3 aVertexNormal;
 
-            //varying vec4 vColor;
             varying vec2 texCoords;
             varying vec3 normals;
 
@@ -29,14 +27,14 @@
         
             void main(void) 
             {
-                gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
+                //gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
                 texCoords = aVertexTexCoords;
                 normals = aVertexNormal;
-                //vColor = aVertexColor;
 
+                vertPositionEye = uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
                 gl_Position = uPMatrix * vertPositionEye;
                 vertNormalEye = uNMatrix * normalize(aVertexNormal);
-                lightSourcePositionEye = uVMatrix * vec4(uLightSourcePosition, 1.0);
+                lightSourcePositionEye = uVMatrix * uSMatrix * vec4(uLightSourcePosition, 1.0);
             }
         </script>
         
@@ -47,7 +45,6 @@
             uniform vec3 Ka, Ks, Kd;
             uniform float a;
 
-            varying vec4 vColor;
             varying vec2 texCoords;
             varying vec3 normals;
             uniform sampler2D texture;
@@ -69,12 +66,7 @@
 
                 vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ks * Is * dotRVs;
 
-                gl_FragColor = vec4(shadedColor, 1.0);
-
-                //if (iscolor == 0)
-                    //gl_FragColor = texture2D(texture, texCoords);     
-                //else
-                    //gl_FragColor = vColor;               
+                gl_FragColor = vec4(shadedColor, 1.0) * texture2D(texture, texCoords);                  
             }
         </script>
         
@@ -156,12 +148,11 @@
                 gl.enableVertexAttribArray(shaderProgram.vertexTextureAttribute);
                 shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
                 gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
-                //shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-                //gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
+               
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
                 shaderProgram.vMatrixUniform = gl.getUniformLocation(shaderProgram, "uVMatrix");
                 shaderProgram.sMatrixUniform = gl.getUniformLocation(shaderProgram, "uSMatrix");
+                shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
                 shaderProgram.sampler2D = gl.getUniformLocation(shaderProgram, "texture");
                 shaderProgram.iscolor = gl.getUniformLocation(shaderProgram, "iscolor");
 
@@ -258,53 +249,13 @@
                 request.send();
             }
 
-            function loadSceneOnGPU() {
-                
+            function loadSceneOnGPU() {    
                 loadModel();
-                // SQUARE
-               /* squareVertexPositionBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-                var vertices = [
-                     1.0,  1.0,  0.0,
-                    -1.0,  1.0,  0.0,
-                     1.0, -1.0,  0.0,
-                    -1.0, -1.0,  0.0       
-                ];
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-                squareVertexPositionBuffer.itemSize = 3;
-                squareVertexPositionBuffer.numItems = 4;
-
-                // SQUARE TEXTURE
-                squareUVsBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, squareUVsBuffer);
-                var squareUVs = [
-                    1.0, 1.0,
-                    0.0, 1.0,
-                    1.0, 0.0,
-                    0.0, 0.0
-                ];
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareUVs), gl.STATIC_DRAW);
-                squareUVsBuffer.itemSize = 2;
-                squareUVsBuffer.numItems = 4;
-
-                // SQUARE COLOR
-                squareColorBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
-                var square_color = [
-                     1.0,  1.0,  1.0, 1.0,
-                     1.0,  1.0,  1.0, 1.0,
-                     1.0,  1.0,  1.0, 1.0,
-                     1.0,  1.0,  1.0, 1.0      
-                ];
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(square_color), gl.STATIC_DRAW);
-                squareColorBuffer.itemSize = 2;
-                squareColorBuffer.numItems = 4;*/
             }
             
             var position = [0.0, 0.0, -50];
             function drawScene() 
             {
-                // Viewport
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -324,10 +275,8 @@
                 mat4.translate(viewMatrix, position);
                 mat4.multiply(viewMatrix, mouseRotationMatrix);
 
-                mat4.identity(sceneMatrix);
-
                 // Lights direction
-                var lightingDirection = [0.0, 1.0, 0.5];
+                var lightingDirection = [0.0, 1.0, 0.0];
                 var normalized_L = vec3.create();
                 vec3.normalize(lightingDirection, normalized_L);
                 gl.uniform3fv(shaderProgram.L_Uniform, normalized_L);
@@ -342,21 +291,18 @@
                 gl.uniform3f(shaderProgram.Ks_Uniform, 1.0, 0.3, 0.0);
                 gl.uniform3f(shaderProgram.Kd_Uniform, 1.0, 0.3, 0.0);
 
+                mat4.identity(sceneMatrix);
+
                 if (modelVertexPositionBuffer)
                 {
                     gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexNormalBuffer);
-                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, modelVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);   
-
+                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, modelVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);       
                     gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexTextureCoordBuffer);
                     gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, modelVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);                  
-                    
                     gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexPositionBuffer);
                     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, modelVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
                     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, modelVertexIndexBuffer);
-
                     sendMatricesToShader();
-
                     gl.drawElements(gl.TRIANGLES, modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
                 }
 
