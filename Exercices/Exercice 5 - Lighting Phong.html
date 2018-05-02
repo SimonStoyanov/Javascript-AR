@@ -12,7 +12,6 @@
             attribute vec3 aVertexNormal;
 
             varying vec2 texCoords;
-            varying vec3 normals;
 
             uniform mat4 uVMatrix;
             uniform mat4 uSMatrix;
@@ -27,9 +26,7 @@
         
             void main(void) 
             {
-                //gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
                 texCoords = aVertexTexCoords;
-                normals = aVertexNormal;
 
                 vertPositionEye = uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
                 gl_Position = uPMatrix * vertPositionEye;
@@ -46,7 +43,6 @@
             uniform float a;
 
             varying vec2 texCoords;
-            varying vec3 normals;
             uniform sampler2D texture;
             uniform int iscolor;
 
@@ -238,7 +234,7 @@
 
             function loadModel(){
                 var request = new XMLHttpRequest();
-                request.open("GET", "Teapot.json");
+                request.open("GET", "Laptop.json");
                 request.onreadystatechange = function () 
                 {
                     if (request.readyState == 4) 
@@ -282,14 +278,14 @@
                 gl.uniform3fv(shaderProgram.L_Uniform, normalized_L);
 
                 // Light intensities
-                gl.uniform3f(shaderProgram.Ia_Uniform, 0.3, 0.3, 0.3);
-                gl.uniform3f(shaderProgram.Is_Uniform, 0.5, 0.5, 0.5);
-                gl.uniform3f(shaderProgram.Id_Uniform, 0.5, 0.5, 0.5);
+                gl.uniform3f(shaderProgram.Ia_Uniform, 1.0, 1.0, 1.0);
+                gl.uniform3f(shaderProgram.Is_Uniform, 1.0, 1.0, 1.0);
+                gl.uniform3f(shaderProgram.Id_Uniform, 1.0, 1.0, 1.0);
 
                 // Surface properties (Ka and Kd)
-                gl.uniform3f(shaderProgram.Ka_Uniform, 1.0, 0.3, 0.0);
-                gl.uniform3f(shaderProgram.Ks_Uniform, 1.0, 0.3, 0.0);
-                gl.uniform3f(shaderProgram.Kd_Uniform, 1.0, 0.3, 0.0);
+                gl.uniform3f(shaderProgram.Ka_Uniform, 1.0, 1.0, 1.0);
+                gl.uniform3f(shaderProgram.Ks_Uniform, 1.0, 1.0, 1.0);
+                gl.uniform3f(shaderProgram.Kd_Uniform, 1.0, 1.0, 1.0);
 
                 mat4.identity(sceneMatrix);
 
