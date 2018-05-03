@@ -8,10 +8,12 @@
 
         <script id="shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
-            attribute vec2 aVertexTexCoords;
             attribute vec3 aVertexNormal;
+            //attribute vec4 aVertexColor;
+            //attribute vec2 aVertexTexCoords;
 
-            varying vec2 texCoords;
+            //varying vec4 vColor;
+            //varying vec2 texCoords;
 
             uniform mat4 uVMatrix;
             uniform mat4 uSMatrix;
@@ -23,14 +25,14 @@
             varying vec3 vertNormalEye;
             varying vec4 vertPositionEye;
             varying vec4 lightSourcePositionEye;
-        
+
             void main(void) 
             {
-                texCoords = aVertexTexCoords;
-
                 vertPositionEye = uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
                 gl_Position = uPMatrix * vertPositionEye;
+
                 vertNormalEye = uNMatrix * normalize(aVertexNormal);
+
                 lightSourcePositionEye = uVMatrix * uSMatrix * vec4(uLightSourcePosition, 1.0);
             }
         </script>
@@ -40,29 +42,36 @@
             
             uniform vec3 Ia, Is, Id;
             uniform vec3 Ka, Ks, Kd;
-            uniform float a;
+            uniform float s;
 
-            varying vec2 texCoords;
-            uniform sampler2D texture;
-            uniform int iscolor;
+            //varying vec4 vColor;
+            //varying vec2 texCoords;
 
             varying vec3 vertNormalEye;
             varying vec4 vertPositionEye;
             varying vec4 lightSourcePositionEye;
 
+            //uniform sampler2D texture;
+            //uniform int iscolor;
+
             void main(void) 
             {
                 vec3 L = normalize(lightSourcePositionEye.xyz - vertPositionEye.xyz);
                 vec3 N = normalize(vertNormalEye);
-                float dotNL = max(dot(N , L), 0.0);
+                float dotNL = max(dot(N, L), 0.0);
 
                 vec3 V = normalize(-vertPositionEye.xyz);
                 vec3 R = reflect(-L, N);
-                float dotRVs = pow(max(dot(R, V), 0.0), a);
+                float dotRVs = pow(max(dot(R, V), 0.0), s);
 
-                vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ks * Is * dotRVs;
+                vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ka * Is * dotRVs;
 
-                gl_FragColor = vec4(shadedColor, 1.0) * texture2D(texture, texCoords);                  
+                gl_FragColor = vec4(shadedColor, 1.0);
+
+                //if (iscolor == 0)
+                    //gl_FragColor = texture2D(texture, texCoords);     
+                //else
+                    //gl_FragColor = vColor;               
             }
         </script>
         
@@ -123,7 +132,8 @@
 
             var shaderProgram;
 
-            function initShaders() {
+            function initShaders() 
+            {
                 var fragmentShader = getShader(gl, "shader-fs");
                 var vertexShader = getShader(gl, "shader-vs");
 
@@ -140,39 +150,49 @@
 
                 shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
                 gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-                shaderProgram.vertexTextureAttribute = gl.getAttribLocation(shaderProgram, "aVertexTexCoords");
-                gl.enableVertexAttribArray(shaderProgram.vertexTextureAttribute);
                 shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
                 gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
-               
+                //shaderProgram.vertexTextureAttribute = gl.getAttribLocation(shaderProgram, "aVertexTexCoords");
+                //gl.enableVertexAttribArray(shaderProgram.vertexTextureAttribute);
+                //shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+                //gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
                 shaderProgram.vMatrixUniform = gl.getUniformLocation(shaderProgram, "uVMatrix");
                 shaderProgram.sMatrixUniform = gl.getUniformLocation(shaderProgram, "uSMatrix");
                 shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-                shaderProgram.sampler2D = gl.getUniformLocation(shaderProgram, "texture");
-                shaderProgram.iscolor = gl.getUniformLocation(shaderProgram, "iscolor");
 
-                shaderProgram.L_Uniform = gl.getUniformLocation(shaderProgram, "uLightSourcePosition");
-                shaderProgram.Ia_Uniform = gl.getUniformLocation(shaderProgram, "Ia");
-                shaderProgram.Is_Uniform = gl.getUniformLocation(shaderProgram, "Is");
-                shaderProgram.Id_Uniform = gl.getUniformLocation(shaderProgram, "Id");
-                shaderProgram.Ka_Uniform = gl.getUniformLocation(shaderProgram, "Ka");
-                shaderProgram.Ka_Uniform = gl.getUniformLocation(shaderProgram, "Ks");
-                shaderProgram.Kd_Uniform = gl.getUniformLocation(shaderProgram, "Kd");
+                //shaderProgram.sampler2D = gl.getUniformLocation(shaderProgram, "texture");
+                //shaderProgram.iscolor = gl.getUniformLocation(shaderProgram, "iscolor");
+
+                shaderProgram.uLightSourcePosition = gl.getUniformLocation(shaderProgram, "uLightSourcePosition");
+
+                shaderProgram.IaUniform = gl.getUniformLocation(shaderProgram, "Ia");
+                shaderProgram.IsUniform = gl.getUniformLocation(shaderProgram, "Is");
+                shaderProgram.IdUniform = gl.getUniformLocation(shaderProgram, "Id");
+
+                shaderProgram.KaUniform = gl.getUniformLocation(shaderProgram, "Ka");
+                shaderProgram.KsUniform = gl.getUniformLocation(shaderProgram, "Ks");
+                shaderProgram.KdUniform = gl.getUniformLocation(shaderProgram, "Kd");
+
+                shaderProgram.sUniform = gl.getUniformLocation(shaderProgram, "s");
             }
 
             var viewMatrix = mat4.create();
             var sceneMatrix = mat4.create();
-            var pMatrix = mat4.create();
+            var projectionMatrix = mat4.create();
 
             function sendMatricesToShader() 
             {
-                gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+                gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projectionMatrix);
                 gl.uniformMatrix4fv(shaderProgram.vMatrixUniform, false, viewMatrix);
                 gl.uniformMatrix4fv(shaderProgram.sMatrixUniform, false, sceneMatrix);
 
+                var modelViewMatrix = mat4.create();
+                modelViewMatrix = mat4.multiply(viewMatrix, sceneMatrix)
+
                 var normalMatrix = mat3.create();
-                mat4.toInverseMat3(mat4.multiply(viewMatrix, sceneMatrix), normalMatrix);
+                mat4.toInverseMat3(modelViewMatrix, normalMatrix);
                 mat3.transpose(normalMatrix);
                 gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
             }
@@ -182,8 +202,7 @@
             {
                 myTexture = gl.createTexture();
                 myTexture.image = new Image();
-                myTexture.image.onload = function() 
-                {
+                myTexture.image.onload = function() {
                     setTextureParameters(myTexture);
                 }
                 myTexture.image.src = "ricalin.png";
@@ -234,7 +253,7 @@
 
             function loadModel(){
                 var request = new XMLHttpRequest();
-                request.open("GET", "Laptop.json");
+                request.open("GET", "Teapot.json");
                 request.onreadystatechange = function () 
                 {
                     if (request.readyState == 4) 
@@ -245,13 +264,55 @@
                 request.send();
             }
 
-            function loadSceneOnGPU() {    
+            function loadSceneOnGPU() 
+            {
                 loadModel();
+
+                // SQUARE
+               /* squareVertexPositionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+                var vertices = [
+                     1.0,  1.0,  0.0,
+                    -1.0,  1.0,  0.0,
+                     1.0, -1.0,  0.0,
+                    -1.0, -1.0,  0.0       
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                squareVertexPositionBuffer.itemSize = 3;
+                squareVertexPositionBuffer.numItems = 4;
+
+                // SQUARE TEXTURE
+                squareUVsBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, squareUVsBuffer);
+                var squareUVs = [
+                    1.0, 1.0,
+                    0.0, 1.0,
+                    1.0, 0.0,
+                    0.0, 0.0
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareUVs), gl.STATIC_DRAW);
+                squareUVsBuffer.itemSize = 2;
+                squareUVsBuffer.numItems = 4;
+
+                // SQUARE COLOR
+                squareColorBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, squareColorBuffer);
+                var square_color = [
+                     1.0,  1.0,  1.0, 1.0,
+                     1.0,  1.0,  1.0, 1.0,
+                     1.0,  1.0,  1.0, 1.0,
+                     1.0,  1.0,  1.0, 1.0      
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(square_color), gl.STATIC_DRAW);
+                squareColorBuffer.itemSize = 2;
+                squareColorBuffer.numItems = 4;*/
             }
             
             var position = [0.0, 0.0, -50];
+
             function drawScene() 
             {
+                // Clear screen
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -261,7 +322,7 @@
                 gl.uniform1i(shaderProgram.sampler2D, 0);
                
                 // Camera type
-                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, projectionMatrix);
 
                 // Camera position - orientation
                 mat4.identity(viewMatrix);
@@ -271,34 +332,41 @@
                 mat4.translate(viewMatrix, position);
                 mat4.multiply(viewMatrix, mouseRotationMatrix);
 
-                // Lights direction
-                var lightingDirection = [0.0, 1.0, 0.0];
-                var normalized_L = vec3.create();
-                vec3.normalize(lightingDirection, normalized_L);
-                gl.uniform3fv(shaderProgram.L_Uniform, normalized_L);
+                // Light
+                var lightingDirection = [10, 20, 10];
+                //var normalized_L = vec3.create();
+                //vec3.normalize(lightingDirection, normalized_L);
+                gl.uniform3fv(shaderProgram.uLightSourcePosition, lightingDirection);
 
-                // Light intensities
-                gl.uniform3f(shaderProgram.Ia_Uniform, 1.0, 1.0, 1.0);
-                gl.uniform3f(shaderProgram.Is_Uniform, 1.0, 1.0, 1.0);
-                gl.uniform3f(shaderProgram.Id_Uniform, 1.0, 1.0, 1.0);
+                // Light instances
+                gl.uniform3f(shaderProgram.IaUniform, 0.3, 0.3, 0.3);
+                gl.uniform3f(shaderProgram.IsUniform, 1.0, 1.0, 1.0);
+                gl.uniform3f(shaderProgram.IdUniform, 1.0, 1.0, 1.0);
 
-                // Surface properties (Ka and Kd)
-                gl.uniform3f(shaderProgram.Ka_Uniform, 1.0, 1.0, 1.0);
-                gl.uniform3f(shaderProgram.Ks_Uniform, 1.0, 1.0, 1.0);
-                gl.uniform3f(shaderProgram.Kd_Uniform, 1.0, 1.0, 1.0);
+                // Surface properties
+                gl.uniform3f(shaderProgram.KaUniform, 0.6, 0.6, 0.6);
+                gl.uniform3f(shaderProgram.KsUniform, 0.8, 0.8, 0.8);
+                gl.uniform3f(shaderProgram.KdUniform, 0.8, 0.8, 0.8);
+
+                gl.uniform1f(shaderProgram.sUniform, 100.0);
 
                 mat4.identity(sceneMatrix);
 
                 if (modelVertexPositionBuffer)
                 {
-                    gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexNormalBuffer);
-                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, modelVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);       
-                    gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexTextureCoordBuffer);
-                    gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, modelVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);                  
                     gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexPositionBuffer);
                     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, modelVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexNormalBuffer);
+                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, modelVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0); 
+
+                    //gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexTextureCoordBuffer);
+                    //gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, modelVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);                  
+                
                     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, modelVertexIndexBuffer);
+
                     sendMatricesToShader();
+
                     gl.drawElements(gl.TRIANGLES, modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
                 }
 
