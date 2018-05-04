@@ -78,7 +78,7 @@
                 float threshold = 0.02;
                 float dark_factor = 0.6;
                 vec3 colorScene = vec3(0.0, 1.0, 0.0);
-/*
+
                 vec3 L = normalize(lightSourcePositionEye.xyz - vertPositionEye.xyz);
                 vec3 N = normalize(vertNormalEye);
                 float dotNL = max(dot(N, L), 0.0);
@@ -88,15 +88,15 @@
                 float dotRVs = pow(max(dot(R, V), 0.0), s);
 
                 vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ka * Is * dotRVs;
-                */
-                //vec2 fragCoordsInLightTexture = vec2(positionFromLight.x / positionFromLight.w, positionFromLight.y / positionFromLight.w);
-                /*float depthFragFromLight = (1.0 + positionFromLight.z / positionFromLight.w)/2.0;
+               
+                /*vec2 fragCoordsInLightTexture = vec2(positionFromLight.x / positionFromLight.w, positionFromLight.y / positionFromLight.w);
+                float depthFragFromLight = (1.0 + positionFromLight.z / positionFromLight.w)/2.0;
                 float depthFromLightTexture = texture2D(lightTexture, fragCoordsInLightTexture).r;  
 
                 if (depthFragFromLight - depthFromLightTexture > threshold)
                     gl_FragColor = vec4(colorScene.rgb * dark_factor, 1.0);
                 else*/
-                    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); 
+                    gl_FragColor = vec4(shadedColor, 1.0); 
             }
         </script>
         
@@ -300,12 +300,12 @@
                 modelVertexNormalBuffer.itemSize = 3;
                 modelVertexNormalBuffer.numItems = modelData.vertexNormals.length / 3;
 
-                modelVertexTextureCoordBuffer = gl.createBuffer();
+                /*modelVertexTextureCoordBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexTextureCoordBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(modelData.vertexTextureCoords), gl.STATIC_DRAW);
                 modelVertexTextureCoordBuffer.itemSize = 2;
                 modelVertexTextureCoordBuffer.numItems = modelData.vertexTextureCoords.length / 2;
-                
+                */
                 modelVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexPositionBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(modelData.vertexPositions), gl.STATIC_DRAW);
@@ -368,6 +368,10 @@
 
             var camera_pos = [0.0, 0, -70];
 
+            var pMatrixLight = mat4.create();
+            var mvMatrixOccluderLight = mat4.create();
+            var mvMatrixFloorLight = mat4.create();
+
             function drawScene() 
             { 
                 // Clear screen
@@ -376,6 +380,10 @@
                
                 // Camera type
                 mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 10000.0, projectionMatrix);
+
+                // Light
+                mat4.identity(pMatrixLight);
+				mat4.set(projectionMatrix, pMatrixLight);
 
                 // SetShaderProgram
                 currShaderProgram = defaultShaderProgram;
