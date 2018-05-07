@@ -13,7 +13,8 @@
             uniform mat4 uSMatrix;
             uniform mat4 uPMatrix;
 			
-            void main(void) {
+            void main(void) 
+            {
 				gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
 			}
 			
@@ -22,7 +23,8 @@
         <script id="shadow-fs" type="x-shader/x-fragment">
             precision mediump float;
 			
-			void main(void) {
+            void main(void) 
+            {
 				gl_FragColor = vec4(vec3(gl_FragCoord.z), 1.0);
 			}
         </script>
@@ -75,6 +77,7 @@
 
             void main(void) 
             {
+                // Shading
                 float threshold = 0.02;
                 float dark_factor = 0.6;
                 vec3 colorScene = vec3(0.0, 1.0, 0.0);
@@ -89,14 +92,24 @@
 
                 vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ka * Is * dotRVs;
                
-                /*vec2 fragCoordsInLightTexture = vec2(positionFromLight.x / positionFromLight.w, positionFromLight.y / positionFromLight.w);
-                float depthFragFromLight = (1.0 + positionFromLight.z / positionFromLight.w)/2.0;
-                float depthFromLightTexture = texture2D(lightTexture, fragCoordsInLightTexture).r;  
+                /*
+                // Shadow map
+                vec2 fragCoordsInLightTexture = (1.0 + lightSourcePositionEye.xy / lightSourcePositionEye.w) / 2.0;
 
-                if (depthFragFromLight - depthFromLightTexture > threshold)
-                    gl_FragColor = vec4(colorScene.rgb * dark_factor, 1.0);
-                else*/
-                    gl_FragColor = vec4(shadedColor, 1.0); 
+                float depthFragFromLight = (1.0 + lightSourcePositionEye.z / lightSourcePositionEye.w) / 2.0;
+
+                float depthFromLightTexture = texture2D(lightTexture, fragCoordsInLightTexture).z;
+
+                vec4 shadowFragColor = vec4(1.0);
+
+                if(depthFragFromLight - depthFromLightTexture > 0.02)
+                {
+                    shadowFragColor = vec4(vec3(0.0, 1.0, 0.0) * 0.6, 1.0);
+                }
+
+                gl_FragColor = shadedFragColor * shadowFragColor;*/
+
+                gl_FragColor = vec4(shadedColor, 1.0);              
             }
         </script>
         
@@ -230,7 +243,7 @@
                 gl.uniformMatrix4fv(currShaderProgram.sMatrixUniform, false, sceneMatrix);
 
                 if (currShaderProgram == defaultShaderProgram)
-                {
+                {   
                     var normalMatrix = mat3.create();
                     mat4.toInverseMat3(sceneMatrix, normalMatrix);
                     mat3.transpose(normalMatrix);
@@ -238,39 +251,42 @@
                 }            
             }
         
-            var rttFrameBuffer;
-            var rttTexture;
-            function inittextureFrameBuffer() {
-                rttFrameBuffer = gl.createFrameBuffer();
-                gl.bindFrameBuffer(gl.FRAMEBUFFER, rttFrameBuffer);
-                rttFrameBuffer.width = 1024;
-                rttFrameBuffer.height = 1024;
+            var rttFramebuffer;
+			var rttTexture;
 
-                rttTexture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			function initTextureFramebuffer() 
+            {
+				rttFramebuffer = gl.createFramebuffer();
+				gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+				rttFramebuffer.width = 1024;
+				rttFramebuffer.height = 1024;
 
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFrameBuffer.width, rttFrameBuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				rttTexture = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
-                var renderbuffer = gl.createRenderBuffer();
-                gl.bindRenderBuffer(gl.RENDERBUFFER, renderbuffer);
-                gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFrameBuffer.width, rttFrameBuffer.height);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+				
+				var renderbuffer = gl.createRenderbuffer();
+				gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+				gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
+				
+				gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
+				gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
 
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
-                gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
-
-                gl.bindTexture(gl.TEXTURE_2D, null);
-                gl.bindRenderBuffer(gl.RENDERBUFFER, null);
-                gl.bindFrameBuffer(gl.FRAMEBUFFER, null);
-            }
+				gl.bindTexture(gl.TEXTURE_2D, null);
+				gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+				gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+			}
 
             var myTexture;
             function loadTextureOnGPU() 
             {
                 myTexture = gl.createTexture();
                 myTexture.image = new Image();
-                myTexture.image.onload = function() {
+                myTexture.image.onload = function() 
+                {
                     setTextureParameters(myTexture);
                 }
                 myTexture.image.src = "ricalin.png";
@@ -319,7 +335,8 @@
                 modelVertexIndexBuffer.numItems = modelData.indices.length;
             }
 
-            function loadModel(){
+            function loadModel()
+            {
                 var request = new XMLHttpRequest();
                 request.open("GET", "Teapot.json");
                 request.onreadystatechange = function () 
@@ -372,8 +389,74 @@
             var mvMatrixOccluderLight = mat4.create();
             var mvMatrixFloorLight = mat4.create();
 
+            function drawSceneFromLight()
+            {
+                gl.viewport(0, 0, 1024, 1024);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                // Camera type
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 10000.0, projectionMatrix);
+
+                mat4.identity(pMatrixLight);
+				mat4.set(projectionMatrix, pMatrixLight);
+
+                // Enable shader program to render from the light source
+				currShaderProgram = shadowShaderProgram;
+				gl.useProgram(currShaderProgram);
+
+                // Light render pos
+                mat4.identity(viewMatrix);
+                mat4.translate(viewMatrix, [0.0, 0.0, -7.0]);
+                mat4.rotate(viewMatrix, degToRad(67.5), [1, 0, 0]);
+                mat4.rotate(viewMatrix, degToRad(-45), [0, 1, 0]);
+
+                // Teapot pos
+                mat4.identity(sceneMatrix);
+                mat4.translate(sceneMatrix, teapot_position);
+                mat4.rotate(sceneMatrix, degToRad(teapot_rotation), [0, 1, 0]);
+                mat4.scale(sceneMatrix, [1, 1, 1]);
+
+                // Teapot print
+                if (modelVertexPositionBuffer)
+                {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexPositionBuffer);
+                    gl.vertexAttribPointer(currShaderProgram.vertexPositionAttribute, modelVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, modelVertexIndexBuffer);
+
+                    sendMatricesToShader();
+
+                    gl.drawElements(gl.TRIANGLES, modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+                }
+                
+                // Save teapot pos
+                mat4.identity(mvMatrixOccluderLight);
+                mat4.multiply(viewMatrix, sceneMatrix, mvMatrixOccluderLight);
+
+                // Plane pos
+                mat4.identity(sceneMatrix);
+                mat4.translate(sceneMatrix, [0, -20, 0]);
+                mat4.scale(sceneMatrix, [20, 20, 20]);
+
+                // Plane print
+                gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+				gl.vertexAttribPointer(currShaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+				sendMatricesToShader();
+
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+
+                // Save plane pos
+                mat4.identity(mvMatrixFloorLight);
+                mat4.multiply(viewMatrix, sceneMatrix, mvMatrixFloorLight);
+            }
+
             function drawScene() 
             { 
+                gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+                drawSceneFromLight();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
                 // Clear screen
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -451,7 +534,8 @@
 
             // Dictionary to manage key events
             var currentlyPressedKeys = {};
-            function handleKeyDown(event) {
+            function handleKeyDown(event) 
+            {
                 currentlyPressedKeys[event.keyCode] = true;
             }
             
@@ -511,7 +595,8 @@
 
             var moveX = 0.0;
             var moveY = 0.0;
-            function handleKeys() {
+            function handleKeys() 
+            {
                 if (currentlyPressedKeys[65]) // KEY A
                 { 
                     moveX += 0.2;
@@ -539,13 +624,15 @@
                     moveY = -0.2;
             }
 
-            function reDraw() {
+            function reDraw() 
+            {
                 requestAnimationFrame(reDraw);
                 handleKeys();
                 drawScene();
             }
 
-            function webGLStart() {
+            function webGLStart() 
+            {
                 var canvas = document.getElementById("webGL-canvas");
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
@@ -556,6 +643,7 @@
                 document.onkeyup = handleKeyUp;
 
                 initGL(canvas);
+                initTextureFramebuffer();
                 initShaders();
                 loadSceneOnGPU();
                 loadTextureOnGPU();                
