@@ -9,7 +9,7 @@
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "file": "${workspaceFolder}/Exercice 5 - Lighting Phong.html"
+            "file": "${workspaceFolder}/Exercice 6 - Shadow Mapping.html"
         },
         {
             "name": "Launch localhost",
