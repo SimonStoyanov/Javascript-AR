@@ -8,6 +8,7 @@
 
         <script id="shadow-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
+            attribute vec3 aVertexNormal;
 
             uniform mat4 uVMatrix;
             uniform mat4 uSMatrix;
@@ -15,7 +16,8 @@
 			
             void main(void) 
             {
-				gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
+                gl_Position = uPMatrix * uVMatrix * uSMatrix * vec4(aVertexPosition, 1.0);
+                vec3 normals = aVertexNormal;
 			}
 			
         </script>
@@ -73,7 +75,7 @@
             varying vec4 lightSourcePositionEye;
 
             uniform sampler2D lightTexture;
-            varying vec4 positionFromLight;
+            varying vec4 vertPositionLight;
 
             void main(void) 
             {
@@ -92,11 +94,12 @@
 
                 vec3 shadedColor = Ka * Ia + Kd * Id * dotNL + Ka * Is * dotRVs;
                
-                /*
-                // Shadow map
-                vec2 fragCoordsInLightTexture = (1.0 + lightSourcePositionEye.xy / lightSourcePositionEye.w) / 2.0;
+                vec4 shadedFragColor = vec4(shadedColor, 1.0);
 
-                float depthFragFromLight = (1.0 + lightSourcePositionEye.z / lightSourcePositionEye.w) / 2.0;
+                // Shadow map
+                vec2 fragCoordsInLightTexture = (1.0 + vertPositionLight.xy / vertPositionLight.w) / 2.0;
+
+                float depthFragFromLight = (1.0 + vertPositionLight.z / vertPositionLight.w) / 2.0;
 
                 float depthFromLightTexture = texture2D(lightTexture, fragCoordsInLightTexture).z;
 
@@ -107,9 +110,9 @@
                     shadowFragColor = vec4(vec3(0.0, 1.0, 0.0) * 0.6, 1.0);
                 }
 
-                gl_FragColor = shadedFragColor * shadowFragColor;*/
+                gl_FragColor = shadedFragColor * shadowFragColor;
 
-                gl_FragColor = vec4(shadedColor, 1.0);              
+                //gl_FragColor = vec4(shadedColor, 1.0);              
             }
         </script>
         
@@ -188,15 +191,15 @@
                 shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
                 gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
+                shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+                gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
                 shaderProgram.vMatrixUniform = gl.getUniformLocation(shaderProgram, "uVMatrix");
                 shaderProgram.sMatrixUniform = gl.getUniformLocation(shaderProgram, "uSMatrix");
                 
                 if(vertexShaderId == "shader-vs")
                 {
-                    shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-                    gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
-
                     shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
                     shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "lightTexture");
                     shaderProgram.pMatrixLightUniform = gl.getUniformLocation(shaderProgram, "uPMatrixLight");
@@ -383,7 +386,7 @@
 
             var lightingPosition = [10, 20, 10];
 
-            var camera_pos = [0.0, 0, -70];
+            var camera_pos = [0.0, 0, -5];
 
             var pMatrixLight = mat4.create();
             var mvMatrixOccluderLight = mat4.create();
@@ -391,11 +394,11 @@
 
             function drawSceneFromLight()
             {
-                gl.viewport(0, 0, 1024, 1024);
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
                 // Camera type
-                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 10000.0, projectionMatrix);
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 2, 10.0, projectionMatrix);
 
                 mat4.identity(pMatrixLight);
 				mat4.set(projectionMatrix, pMatrixLight);
@@ -414,13 +417,16 @@
                 mat4.identity(sceneMatrix);
                 mat4.translate(sceneMatrix, teapot_position);
                 mat4.rotate(sceneMatrix, degToRad(teapot_rotation), [0, 1, 0]);
-                mat4.scale(sceneMatrix, [1, 1, 1]);
+                mat4.scale(sceneMatrix, [0.05, 0.05, 0.05]);
 
                 // Teapot print
                 if (modelVertexPositionBuffer)
                 {
                     gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexPositionBuffer);
                     gl.vertexAttribPointer(currShaderProgram.vertexPositionAttribute, modelVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, modelVertexNormalBuffer);
+                    gl.vertexAttribPointer(currShaderProgram.vertexNormalAttribute, modelVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
                     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, modelVertexIndexBuffer);
 
@@ -435,16 +441,19 @@
 
                 // Plane pos
                 mat4.identity(sceneMatrix);
-                mat4.translate(sceneMatrix, [0, -20, 0]);
-                mat4.scale(sceneMatrix, [20, 20, 20]);
+                mat4.translate(sceneMatrix, [0, -1, 0]);
+                mat4.scale(sceneMatrix, [1.5, 1.5, 1.5]);
 
                 // Plane print
                 gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 				gl.vertexAttribPointer(currShaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+				gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexNormalBuffer);
+				gl.vertexAttribPointer(currShaderProgram.vertexNormalAttribute, squareVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
 				sendMatricesToShader();
 
-                gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexNormalBuffer.numItems);
 
                 // Save plane pos
                 mat4.identity(mvMatrixFloorLight);
@@ -462,15 +471,16 @@
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                
                 // Camera type
-                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 10000.0, projectionMatrix);
-
-                // Light
-                mat4.identity(pMatrixLight);
-				mat4.set(projectionMatrix, pMatrixLight);
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 2, 10.0, projectionMatrix);
 
                 // SetShaderProgram
                 currShaderProgram = defaultShaderProgram;
 				gl.useProgram(currShaderProgram);
+
+                // Send the texture generated in the 1st rendering pass to the shaders
+				gl.activeTexture(gl.TEXTURE0);
+				gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+				gl.uniform1i(currShaderProgram.samplerUniform, 0);
 
                 // Camera position - orientation
                 mat4.identity(viewMatrix);
@@ -497,8 +507,14 @@
                 mat4.identity(sceneMatrix);
                 mat4.translate(sceneMatrix, teapot_position);
                 mat4.rotate(sceneMatrix, degToRad(teapot_rotation), [0, 1, 0]);
-                mat4.scale(sceneMatrix, [1, 1, 1]);
+                mat4.scale(sceneMatrix, [0.05, 0.05, 0.05]);
                 teapot_rotation += 0.05;
+
+				// Send the projection matrix of the light's view to the shader
+				gl.uniformMatrix4fv(currShaderProgram.pMatrixLightUniform, false, pMatrixLight);
+
+                // Send the modelview matrix of the occluder from the light's view to the shader
+				gl.uniformMatrix4fv(currShaderProgram.mvMatrixLightUniform, false, mvMatrixOccluderLight);
 
                 if (modelVertexPositionBuffer)
                 {
@@ -515,21 +531,22 @@
                     gl.drawElements(gl.TRIANGLES, modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
                 }
 
-               
                 mat4.identity(sceneMatrix);
-                mat4.translate(sceneMatrix, [0, -20, 0]);
-                mat4.scale(sceneMatrix, [20, 20, 20]);
+                mat4.translate(sceneMatrix, [0, -1, 0]);
+                mat4.scale(sceneMatrix, [1.5, 1.5, 1.5]);
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 				gl.vertexAttribPointer(currShaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-				gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-				gl.vertexAttribPointer(currShaderProgram.vertexNormalAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+				gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexNormalBuffer);
+				gl.vertexAttribPointer(currShaderProgram.vertexNormalAttribute, squareVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 				sendMatricesToShader();
 
-                gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+				// Send the modelview matrix of the floor from the light's view to the shader
+				gl.uniformMatrix4fv(currShaderProgram.mvMatrixLightUniform, false, mvMatrixFloorLight);
 
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
             }
 
             // Dictionary to manage key events
